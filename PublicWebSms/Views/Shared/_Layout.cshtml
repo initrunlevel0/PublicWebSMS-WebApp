@@ -1,0 +1,37 @@
+﻿<!DOCTYPE HTML>
+<html>
+<head>
+	<title>Publis Web SMS: @ViewBag.Title</title>
+	<link rel="stylesheet" href="style.css" />
+    @Styles.Render("~/Content/css")
+    @Scripts.Render("~/bundles/modernizr")
+    @Scripts.Render("~/bundles/jquery")
+	<script type="text/javascript" src="~/Content/Script.js"></script>
+</head>
+<body>
+    <div id="header">
+	    <div id="site-header">
+		    <div id="site-title">
+			    <h1><img src="~/Content/images/pws-logo.png" /><span>Public Web SMS</span></h1>	
+		    </div>
+		    </div>
+	    <div id="site-menu">
+		    <nav>
+			    <span><a href="">Dashboard</a></span>
+			    <span><a href="compose.html">Compose</a></span>
+			    <span><a href="">Draft</a></span>
+			    <span><a href="outbox.html">Outbox</a></span>
+			    <span><a href="">Sent</a></span>
+			    <span><a href="contact.html">Contact</a></span>
+			    <span><a href="">Group</a></span>
+		    </nav>
+	    </div>
+    </div>
+    <div id="header-clear">&nbsp;</div>
+    @RenderBody()
+    <div id="site-footer">
+	    <span class="copyright left">&copy; 2013 Public Web SMS</span>
+	    <span class="author right">Created by: Ifan Iqbal & Putu Wiramasawara Widya</span>
+    </div>
+</body>
+</html>
