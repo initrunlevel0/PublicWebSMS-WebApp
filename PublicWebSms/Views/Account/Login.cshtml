@@ -1,0 +1,20 @@
+﻿@{
+    ViewBag.Title = "Login";
+}
+
+<h2>Login</h2>
+
+<form method="post" action="">
+<p>Silahkan melakukan login melalui form dibawah ini. <a href="/Account/Register">Klik ini</a> untuk melakukan pendaftaran.</p>
+<table>
+    <tr>
+        <td>Nama login</td>
+        <td>@Html.TextBox("LoginName")</td>
+    </tr>
+    <tr>
+        <td>Password</td>
+        <td>@Html.TextBox("Password")</td>
+    </tr>
+</table>
+<input type="submit" value="Login"/>
+</form>
