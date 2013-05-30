@@ -12,6 +12,7 @@ namespace PublicWebSms.Controllers
     {
         //
         // GET: /Account/
+        private PwsDbContext db = new PwsDbContext();
 
         public ActionResult Index()
         {
@@ -32,16 +33,26 @@ namespace PublicWebSms.Controllers
         [HttpPost]
         public ActionResult Login(LoginData loginData)
         {
+            bool berhasil = false;
+
             if (ModelState.IsValid)
             {
                 if (UserSession.DoLogin(loginData.LoginName, loginData.Password))
                 {
-                    return Redirect("/Dashboard");
+                    berhasil = true;
+                    if (!Request.IsAjaxRequest())
+                    {
+                        return Redirect("/Dashboard");
+                    }
                 }
 
             }
 
-            return Redirect("/Account/Login");
+            if (Request.IsAjaxRequest())
+            {
+                return Json(berhasil);
+            }
+            return View();
         }
 
         [PwsAuthorize]
@@ -60,12 +71,37 @@ namespace PublicWebSms.Controllers
         [HttpPost]
         public ActionResult Register(RegisterData registerData)
         {
+            // AJAX Request: Berikan aba-aba jika pengisian formulir sudah benar
+            // HTTP Request: Bawa ke alamat RegisterSucccess jika pengisian sudah benar
+            
+            bool berhasil = false;
+            
             if (ModelState.IsValid)
             {
+                User newUser = new User { LoginName = registerData.Email, LoginPassword = registerData.Password };
+                db.Users.Add(newUser);
+                db.SaveChanges();
 
+                berhasil = true;
+
+                if (!Request.IsAjaxRequest())
+                {
+                    return Redirect("/Account/RegisterSuccess");
+                }
             }
 
-            return View("RegisterSuccess");
+
+            if (Request.IsAjaxRequest())
+            {
+                return Json(berhasil);
+            }
+
+            return View();
+        }
+
+        public ActionResult RegisterSuccess()
+        {
+            return View();
         }
 
         [PwsAuthorize]
@@ -74,5 +110,10 @@ namespace PublicWebSms.Controllers
             return View();
         }
 
+        protected override void Dispose(bool disposing)
+        {
+ 	         base.Dispose(disposing);
+             db.Dispose();
+        }
     }
 }
