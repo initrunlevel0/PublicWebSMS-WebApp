@@ -26,8 +26,7 @@ namespace PublicWebSms.Controllers
 
 
             ViewBag.ErrorMessage = errorMessage.ToString();
-            //return View();
-            return Redirect("~/Account/Login");
+            return RedirectToAction("Login", "Account");
         }
 
         public ActionResult About()
