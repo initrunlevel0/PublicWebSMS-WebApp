@@ -6,12 +6,14 @@ using System.Web;
 using System.Web.Mvc;
 using System.ComponentModel.DataAnnotations;
 
+
 namespace PublicWebSms.Controllers
 {
     [PwsAuthorize]
     public class MessageController : Controller
     {
         private PwsDbContext db = new PwsDbContext();
+        private MessageProcess messageProcess = new MessageProcess();
         //
         // GET: /Message/
 
@@ -62,41 +64,28 @@ namespace PublicWebSms.Controllers
         /*
          * Compose: menampilkan borang pembuatan pesan atau pengeditan pesan Draft
          */
-        public ActionResult Compose(int smsId = -1, string destinationNumber = "", int isDraft = 0)
+        public ActionResult Compose(int draftId = -1, string destinationNumber = "")
         {
+            ViewBag.DraftId = draftId;
             string loggedUserName = UserSession.GetLoggedUserName();
             ViewBag.Scheduled = false;
-            if (smsId > 0 && isDraft == 0)
+            ViewBag.ScheduleTime = DateTime.Now;
+
+            ViewBag.IsValid = Convert.ToBoolean(Request.QueryString["isValid"]);
+
+            if (draftId > 0)
             {
-                var smsUserData = db.SMSUser.SingleOrDefault(x => x.SMS.SmsId == smsId && x.UserName == loggedUserName);
-                var smsData = smsUserData.SMS;
-                ViewBag.DestinationNumber = smsData.DestinationNumber;
-                ViewBag.MessageContent = smsData.Content;
-                if (smsData.Scheduled)
-                {
-                    ViewBag.ScheduleCheck = "checked";
-                }
-                else
-                {
-                    ViewBag.ScheduleCheck = "";
-                }
-                ViewBag.Scheduled = smsData.Scheduled;
-                ViewBag.ScheduleTime = smsData.ScheduleTime;
-                return View(smsData);
-            }
-            else if (isDraft == 1)
-            {
-                var draftUserData = db.DraftUser.SingleOrDefault(x => x.Draft.DraftId == smsId && x.UserName == loggedUserName);
+                var draftUserData = db.DraftUser.SingleOrDefault(x => x.Draft.DraftId == draftId && x.UserName == loggedUserName);
                 var draftData = draftUserData.Draft;
                 ViewBag.DestinationNumber = draftData.DestinationNumber;
                 ViewBag.MessageContent = draftData.Content;
                 if (draftData.Scheduled)
                 {
-                    ViewBag.ScheduleCheck = "checked='checked'";
+                    ViewBag.ScheduleCheck = "checked=checked";
                 }
                 else
                 {
-                    ViewBag.ScheduleCheck = "checked='checked'";
+                    ViewBag.ScheduleCheck = "";
                 }
                 ViewBag.Scheduled = draftData.Scheduled;
                 ViewBag.ScheduleTime = draftData.ScheduleTime;
@@ -107,135 +96,80 @@ namespace PublicWebSms.Controllers
 
         public ActionResult Process(SMS smsInput, int smsAction)
         {
+            bool sukses = false;
+            string loggedUserName = UserSession.GetLoggedUserName();
+
             if (smsAction == 1)
             {
-                Send(smsInput);
-                return Redirect("~/Message/Outbox?success=1");
-            }
-            else
-            {
-                Draft draft = new Draft {
-                    Content = smsInput.Content, DestinationNumber = smsInput.DestinationNumber,
-                    Scheduled = smsInput.Scheduled
-                };
+                smsInput.TimeStamp = DateTime.Now;
+                smsInput.Sent = false;
+                smsInput.Draft = false;
 
-                if (draft.Scheduled) draft.ScheduleTime = smsInput.ScheduleTime;
-                else draft.ScheduleTime = DateTime.Now;
-                SaveDraft(draft);
-                return Redirect("~/Message/Draft?success=1");
-            }
-        }
-
-        [HttpPost]
-        public ActionResult SaveDraft(Draft draft)
-        {
-            bool sukses = false;
-//            draft.ScheduleTime = DateTime.Parse(draft.ScheduleTime);
-
-            // Dikomentari sementara, nanti masalah nilai bawaan harus diatur di model, bukan di kode ini (seperti tiga baris diatas itu)
-            db.Drafts.Add(draft);
-            db.SaveChanges();
-
-            DraftUser draftUser = new DraftUser
-            {
-                UserName = UserSession.GetLoggedUserName(),
-                DraftId = draft.DraftId
-            };
-
-            db.DraftUser.Add(draftUser);
-            db.SaveChanges();
-
-            sukses = true;
-
-            if (!Request.IsAjaxRequest())
-            {
-                return Redirect("~/Message/Draft?success=1");
-            }
-            else
-            {
-                return Json(sukses);
-            }
-        }
-
-        [HttpGet]
-        public ActionResult Send(int smsId, int sendDraft = 0)
-        {
-            string loggedUserName = UserSession.GetLoggedUserName();
-            SMS smsData = null;
-            if (sendDraft == 1)
-            {
-                DraftUser draftUser = db.DraftUser.SingleOrDefault(x => x.DraftId == smsId && 
-                    x.UserName == loggedUserName);
-                smsData = new SMS
+                // Dikomentari sementara, nanti masalah nilai bawaan harus diatur di model, bukan di kode ini (seperti tiga baris diatas itu)
+                if (ModelState.IsValid)
                 {
-                    Content = draftUser.Draft.Content, DestinationNumber = draftUser.Draft.DestinationNumber,
-                    ScheduleTime = draftUser.Draft.ScheduleTime, Scheduled = draftUser.Draft.Scheduled, Draft = false,
-                    Sent = false, TimeStamp = DateTime.Now
-                };
-                db.Drafts.Remove(draftUser.Draft);
-                db.DraftUser.Remove(draftUser);
-            }
-            else
-            {
-                SMSUser smsUser = db.SMSUser.SingleOrDefault(x => x.SMSId == smsId && x.UserName == loggedUserName);
-                smsData = smsUser.SMS;
-                db.SMSes.Remove(smsUser.SMS);
-                db.SMSUser.Remove(smsUser);
-            }
+                    sukses = messageProcess.Send(this, smsInput);
 
-            smsData.Draft = false;
-            return Send(smsData);
-        }
+                    if (!Request.IsAjaxRequest())
+                    {
+                        if (sukses)
+                        {
+                            return Redirect("~/Message/Outbox?sukses=1");
+                        }
+                        else
+                        {
+                            return Redirect("~/Message/Outbox?sukses=0");
+                        }
+                    }
+                    else
+                    {
+                        return Json(sukses);
+                    }
 
-        [HttpPost]
-        public ActionResult Send(SMS smsInput)
-        {
-            bool sukses = false;
-            smsInput.TimeStamp = DateTime.Now;
-            smsInput.Sent = false;
-            smsInput.Draft = false;
-
-            var context = new ValidationContext(smsInput, serviceProvider: null, items: null);
-            var results = new List<ValidationResult>();
-            var isValid = Validator.TryValidateObject(smsInput, context, results);
-
-
-            // Dikomentari sementara, nanti masalah nilai bawaan harus diatur di model, bukan di kode ini (seperti tiga baris diatas itu)
-            if (ModelState.IsValid && isValid)
-            {
-                db.SMSes.Add(smsInput);
-                db.SaveChanges();
-
-                SMSUser smsUser = new SMSUser
-                {
-                    UserName = UserSession.GetLoggedUserName(),
-                    SMSId = smsInput.SmsId
-                };
-
-                db.SMSUser.Add(smsUser);
-                db.SaveChanges();
-
-                sukses = true;
-
-                if (!Request.IsAjaxRequest())
-                {
-                    return Redirect("~/Message/Outbox?sukses=1");
                 }
                 else
                 {
-                    return Json(sukses);
-                }
+                    // simpan ke draft kalau belum ada di draft
+                    int draftId = Convert.ToInt32(Request.Form["draftId"]);
+                    int theDraftId;
 
+                    if (draftId > 0)
+                    {
+                        theDraftId = draftId;
+                    }
+                    else
+                    {
+                        sukses = messageProcess.SaveDraft(this, smsInput);
+                        int lastDraftId = (
+                            from draftUser in db.DraftUser 
+                            where draftUser.UserName == loggedUserName 
+                            select draftUser.DraftId
+                        ).ToList().Last();
+
+                        theDraftId = lastDraftId;
+                    }
+
+                    if (!Request.IsAjaxRequest())
+                    {
+                        return Redirect("~/Message/Compose?draftId=" + theDraftId + "&isValid=false");
+                    }
+                    else
+                    {
+                        return Json(false);
+                    }
+                }
             }
             else
             {
-                if (!Request.IsAjaxRequest())
+                sukses = messageProcess.SaveDraft(this, smsInput);
+
+                if (sukses)
                 {
-                    return Redirect("~/Message/Outbox?sukses=0");
+                    return Redirect("~/Message/Draft?success=1");
                 }
                 else
                 {
-                    return Json(sukses);
+                    return Redirect("~/Message/Draft?success=0");
                 }
             }
         }

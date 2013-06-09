@@ -26,14 +26,14 @@
         <td><strong>Jadwal kirim</strong></td>
         <td><strong>Pilihan</strong></td>
     </tr>
-        @foreach (PublicWebSms.Models.Draft sms in Model)
+        @foreach (PublicWebSms.Models.Draft draft in Model)
         {
         <tr>
-            <td class="sms-destination">@sms.DestinationNumber</td>
-            <td class="sms-content">@sms.Content</td>
-            <td class="sms-schedule">@if (sms.Scheduled)
+            <td class="sms-destination">@draft.DestinationNumber</td>
+            <td class="sms-content">@draft.Content</td>
+            <td class="sms-schedule">@if (draft.Scheduled)
                                      {
-                                         <span>@sms.ScheduleTime</span>
+                                         <span>@draft.ScheduleTime</span>
                                      }
                                      else
                                      {
@@ -41,7 +41,7 @@
                                      }
             </td>
             <td class="sms-status">
-                <a href="~/Message/Compose?smsId=@sms.DraftId&isDraft=1">Sunting</a> | <a href="~/Message/Send?smsId=@sms.DraftId&sendDraft=1">Kirim</a>
+                <a href="~/Message/Compose?draftId=@draft.DraftId">Sunting</a> | <a href="~/Message/SendDraft?draftId=@draft.DraftId">Kirim</a>
             </td>
         </tr>
         }   

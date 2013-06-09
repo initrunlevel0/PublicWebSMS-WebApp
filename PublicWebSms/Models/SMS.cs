@@ -39,6 +39,7 @@ namespace PublicWebSms.Models
         [Required]
         public bool Scheduled { get; set; }
 
+        [Required]
         public DateTime ScheduleTime { get; set; }
 
     }

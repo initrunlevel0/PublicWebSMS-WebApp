@@ -25,18 +25,11 @@
 <div class="label row">
     <br />
     <label>Pengiriman terjadwal</label><br />
-    <input type="checkbox" name="Scheduled" id="schedulecheck" @ViewBag.ScheduleCheck/>
+    <input type="checkbox" name="Scheduled" id="schedulecheck" value="true" @ViewBag.ScheduleCheck/>
     <label for="schedulecheck">Aktifkan penjadwalan</label>
 </div>
 <div class="input-wrapper row">
-    <input type="datetime" name="ScheduleTime" id="scheduletime" value="@if(ViewBag.Scheduled)
-                                                                        {
-                                                                            @ViewBag.ScheduleTime;
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            DateTime.Now.ToString();
-                                                                        }" />
+    <input type="datetime" name="ScheduleTime" id="scheduletime" value="@ViewBag.ScheduleTime" />
 </div>
 
 <div class="label row">
@@ -46,6 +39,7 @@
 <div class="row input-wrapper">
     <input type="radio" name="smsAction" id="action-send" value="1" checked="checked"/><label for="action-send" class="sms-action-label">Kirim</label>
     <input type="radio" name="smsAction" id="action-draft" value="0"/><label for="action-draft" class="sms-action-label">Simpan ke draft</label>
+    <input type="hidden" name="draftId" value="@ViewBag.DraftId" />
 </div>
 <div class="row">
     <br />
